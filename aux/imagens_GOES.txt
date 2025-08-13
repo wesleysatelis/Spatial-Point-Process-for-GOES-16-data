@@ -1,0 +1,10 @@
+FDCF: informações sobre queimadas. Poder radiativo, temperatura e area queimada.
+Imagem a cada 1h, pode fazer o acumulado diario.
+Está sem nuvem?
+
+Temperatura de superficie: Bandas especificas, banda 7.
+
+Variação do NDVI. Verificar quanto tempo o NDVI demora para estabilizar.
+
+Usar balanço hidrico para dicussão dos resultados. Trabalhos que a Renata vai enviar falam disso.
+

@@ -1,0 +1,49 @@
+---
+title: "Dissertação"
+output: pdf_document
+date: "`r Sys.Date()`"
+geometry: "left=1cm,right=1cm,top=1cm,bottom=1cm"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, fig.align = 'center', fig.width = 7, fig.height = 5)
+
+source('fun.R', encoding = 'utf-8')
+pantanal <- st_read('pantanal_shape/pantanal.shp')
+```
+
+
+```{r}
+fogo <- open_dataset('dados_extraidos/fogo/') |> 
+    filter(fogo == 1 & temp > 47 & radiatv > 5 & ano==2020 & mes%in%c(8)) |> 
+    collect()
+```
+
+```{r, fig.height=6, fig.width=7}
+fogo |> 
+    group_by(mes, dia) |> 
+    summarise(n=n()) |> 
+    ggplot(aes(x=dia, y=n)) + 
+    geom_point() + 
+    geom_line() + 
+    facet_wrap(~mes, ncol=3) + 
+    ylab('Qtd. incendios')
+```
+
+
+```{r, fig.width=9, fig.height=9}
+pontos_sf <- st_as_sf(fogo, coords = c("x", "y"), crs = st_crs(pantanal))
+
+fogo |>
+    ggplot() +
+    geom_sf(data = pantanal, fill = "white", color = "black") +
+    geom_sf(data = pontos_sf, aes(color=radiatv), alpha = 0.3, size=1) +
+    scale_color_viridis_c(option = "inferno", limits = c(0, 300),
+                          oob = scales::squish) +
+    ggtitle('Frequência de incêndios por mês.') + 
+    facet_wrap(~mes)
+```
+
+
+
+

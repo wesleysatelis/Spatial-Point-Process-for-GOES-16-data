@@ -1,0 +1,13 @@
+ssh w188650@zurich.ime.unicamp.br -p 2022
+
+scp -P 2022 /home/wesley/Dropbox/Embrapa/github/procarbonsoil-calibration/00\ -\ environment_settings.R w188650@zurich.ime.unicamp.br:/home/w188650/
+
+scp -r dir w188650@zurich.ime.unicamp.br:/home/w188650/proc/
+
+find  -type f -name "*.tif" -exec cp {} ~/teste/ \;
+
+sudo mount -t ntfs /dev/sda1 /home/wesley/Dropbox/Unicamp/Mestrado/Dissertacao/hd_externo
+
+aws s3 sync --no-sign-request s3://noaa-goes16/ABI-L2-FDCF/2020/ 2020
+
+ffmpeg -framerate 5 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p 2023_temp_36.mp4

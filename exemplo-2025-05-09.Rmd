@@ -1,0 +1,69 @@
+---
+title: "STPPP"
+author: "Guilherme Ludwig"
+date: "09/05/2025"
+output: pdf_document
+---
+
+Configuração inicial: Poisson em $[0,1]^2$ com taxa $\lambda = 50.$
+
+```{r message=FALSE, warning=FALSE}
+require(spatstat)
+
+win <- owin(c(0,1),c(0,1))
+
+set.seed(1)
+x <- rpoispp(50, win = win)
+plot(x)
+```
+
+Livro do Diggle (2014) sugere usar $[0,1]^2 \times \{0,1,\ldots,T\}$ (p. 206), isto é, tempo discreto. Em caso contrário fica muito difícil definir propriedades (função $K,$ verossimilhança etc.).
+
+## Processo Gaussiano espacial
+
+```{r message=FALSE, warning=FALSE}
+require(mtvnorm)
+require(fields)
+x <- seq(0, 1, l=30)
+y <- seq(0, 1, l=30)
+tim <- 0:5
+xy <- expand.grid(x=x, y=y)
+G <- exp(-(as.matrix(dist(xy))^2)/.1)
+temp <- eigen(G, symmetric = TRUE)
+temp$values[temp$values < 0] <- 0
+# temp$vectors %*% diag(temp$values) %*% t(temp$vectors)
+
+set.seed(3)
+Z <- temp$vectors %*% crossprod(diag(sqrt(temp$values)), rnorm(nrow(xy), 0, 1))
+fields::image.plot(x, y, matrix(Z, nrow = length(x)))
+```
+
+## Processo de Cox
+
+```{r}
+x <- seq(0, 1, l=30)
+y <- seq(0, 1, l=30)
+tim <- 0:5
+xy <- expand.grid(x=x, y=y)
+G <- 2*exp(-(as.matrix(dist(xy))^1)/.1) # exponencial
+temp <- eigen(G, symmetric = TRUE)
+temp$values[temp$values < 0] <- 0
+# temp$vectors %*% diag(temp$values) %*% t(temp$vectors)
+
+set.seed(3)
+Z <- temp$vectors %*% crossprod(diag(sqrt(temp$values)), rnorm(nrow(xy), 0, 1))
+fields::image.plot(x, y, matrix(Z, nrow = length(x)))
+
+temp2 <- as.im(t(matrix(exp(Z-1.6), nrow = length(x)))) # Precisa transpor!!!
+# Como uma regressão com beta0 = -1.2
+plot(temp2, main = "baseline como imagem")
+
+set.seed(3)
+win <- owin(c(0,1),c(0,1))
+x <- rpoispp(lambda = temp2, win = win)
+plot(temp2, main = "Processo de Cox")
+plot(x, pch = 20, add = TRUE)
+```
+
+
+
