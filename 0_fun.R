@@ -46,7 +46,7 @@ crop_2_epsg <- function(raster, shape){
 
 to_shape <- function(df_caminhos, shape) {
   mclapply(df_caminhos$file, down_goes, mc.cores = 6)
-  
+
   df_caminhos <- df_caminhos |> 
     mutate(file = paste0('files/', basename(file)))
   
@@ -86,10 +86,11 @@ to_shape <- function(df_caminhos, shape) {
   
   # -------------------------------------------------------------------
   # Alinhar resolução e grade usando fire_mask como referência
-  temp  <- terra::resample(temp, fire_mask, method = "near")
-  power <- terra::resample(power, fire_mask, method = "near")
-  area  <- terra::resample(area, fire_mask, method = "near")
+  temp  <- terra::resample(temp, fire_mask, method = "bilinear")
+  power <- terra::resample(power, fire_mask, method = "bilinear")
+  area  <- terra::resample(area, fire_mask, method = "bilinear")
   dqf   <- terra::resample(dqf, fire_mask, method = "near")
+  
   
   # -------------------------------------------------------------------
   # Reprojetar todos juntos para EPSG:4674
@@ -98,6 +99,23 @@ to_shape <- function(df_caminhos, shape) {
   power     <- terra::project(power,     "EPSG:4674")
   area      <- terra::project(area,      "EPSG:4674")
   dqf       <- terra::project(dqf,       "EPSG:4674")
+  
+  canais <- df_caminhos |> 
+    filter(produto=='cmipf')
+  
+  canais_final <- list()
+  for(canal_i in canais$canal){
+    # canal_i <- canais$canal[2]
+    
+    canal_df <- canais |> 
+      filter(canal==canal_i)
+    
+    canais_final[[length(canais_final)+1]] <- extract_ch(canal_df$file, fire_mask, shape_proj) |> 
+      mutate(file=canal_df$file, start_time=canal_df$start_time, produto=canal_df$produto, canal=canal_df$canal)
+    
+  }
+  canais_final <- bind_rows(canais_final)
+  
   
   if(exists('bcm_clear_sky_crop')){
     bcm_clear_sky_crop <- terra::project(bcm_clear_sky_crop, "EPSG:4674")
@@ -140,7 +158,7 @@ to_shape <- function(df_caminhos, shape) {
   
   # -------------------------------------------------------------------
   # Organizar dados
-  res <- bind_rows(fogo, temperatura, radiativo, qualidade, area)
+  res <- bind_rows(fogo, temperatura, radiativo, qualidade, area, canais_final)
   
   if(exists('bcm_clear_sky_crop')){
     res <- bind_rows(res, bcm_clear_sky_crop, dqf_clear_sky)
@@ -167,6 +185,29 @@ to_shape <- function(df_caminhos, shape) {
   return(res)
 }
 
+
+extract_ch <- function(caminho_ch, fire_mask, shape_proj){
+  # caminho_ch <- canal_df$file
+  
+  rast_canal <- terra::rast(caminho_ch)
+  rast_canal <- terra::mask(terra::crop(rast_canal, shape_proj), shape_proj)
+  rast_canal <- terra::resample(rast_canal, fire_mask, method = "bilinear")
+  rast_canal <- terra::project(rast_canal, "EPSG:4674")
+  
+  get_val_coor_ch(rast_canal)
+}
+
+get_val_coor_ch <- function(rast_canal){
+  # r <- fire_mask
+  coords <- xyFromCell(rast_canal, 1:ncell(rast_canal))
+  vals <- values(rast_canal)
+  
+  tibble(x = coords[,1],
+                      y = coords[,2],
+                      value_cmi = as.vector(vals[, 'CMI']),
+                      value_dqf = as.vector(vals[, 'DQF'])) |> 
+    filter(!is.na(value_cmi))
+}
 
 get_val_coor <- function(r){
     # r <- fire_mask
@@ -387,6 +428,7 @@ cria_caminhos <- function(produto, canais=NULL, ano, doy){
       mutate(timestamp=str_extract(file, "s\\d{14}") |> str_remove("^s"))
   }
 }
+
 
 
 

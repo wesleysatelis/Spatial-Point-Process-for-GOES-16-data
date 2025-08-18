@@ -1,12 +1,13 @@
 rm(list=ls())
 source('0_fun.R', encoding = 'utf-8')
+source('fun_chat.R')
 
 shape <- st_read('pantanal_shape/pantanal.shp')
 shape <- vect(shape)
 
-data0 <- '2020-01-01'
-data1 <- '2020-01-01'
-canais <- c(3, 6, 2, 17)
+data0 <- '2020-06-01'
+data1 <- '2020-12-31'
+canais <- c(2, 3, 7)
 # -------------------------------------------------------------------------
 system('rm -rf files/*')
 
@@ -51,23 +52,9 @@ df <- df |>
   mutate(start_time=na.omit(unique(start_time))) |> 
   ungroup()
 
-df_caminhos <- df |> 
-  filter(group_id%in%c(6))
+df_list <- df |> 
+  split(df$group_id)
 
-# -------------------------------------------------------------------------
-res <- res |> 
-  filter(qualidade==1) 
-res <- res |> 
-  sample_n(100)
-
-res <- res |> 
-  select(x, y, dt_hms)
-
-shape
-
-
-
-
-
+resultados <- mclapply(df_list, to_shape, shape, mc.cores = parallel::detectCores()-2)
 
 
