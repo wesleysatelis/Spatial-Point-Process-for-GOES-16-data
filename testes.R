@@ -3,29 +3,70 @@ library(arrow)
 library(patchwork)
 library(lubridate)
 library(ggplot2)
-source('fun.R', encoding = 'utf-8')
+source('0_fun.R', encoding = 'utf-8')
 library(dplyr)
-gc()
 
 data <- open_dataset('dados_extraidos/') |> 
-    filter(fogo == 1 & temp > 47 & radiatv > 5 & ano==2020 & mes%in%c(8)) |> 
     collect()
 
-data <- data |> 
-    dplyr::select(-c(arquivo, doy, min, seg, ano, mes, dia, hora)) |> 
-    # mutate(x=as.character(x), y=as.character(y)) |> 
-    arrange(dt_hms)
+# fire == 1 & temp > 47 & radiatv > 5 & ano==2020
 
-data <- data |> 
-    mutate(semana=week(dt_hms)) |> 
-    filter(semana==32)
+data_fire <- data |> 
+    filter(!str_detect(var, 'cmi')) |> 
+    pivot_wider(names_from = var, values_from = value) |> 
+    filter(fire==1, temp > 47 & radiatv > 5)
 
-# existem obs do mesmo ponto em que a temp e radiativ mudam, então
-# não podemos usar o acumulado diretamente pois haveriam pontos sobrepostos
+data_fire <- data_fire |> 
+    select(x, y, dt_hms, fire)
 
-data |> 
-    count(dt_hms) |> 
-    filter(n!=1)
+# tem que pegar dqf_cmi_03!
+# canais |> 
+#     filter(var=='dqf_cmi') |> 
+#     distinct()
+
+canais <- data |> 
+    filter(str_detect(var, 'cmi')) |> 
+    filter(var!='dqf_cmi') |> 
+    pivot_wider(names_from = var, values_from = value) |> 
+    mutate(nbr=(cmi_03 - cmi_07) / (cmi_03 + cmi_07),
+           ndvi=(cmi_03 - cmi_02) / (cmi_03 + cmi_02)) |> 
+    select(x, y, dt_hms, nbr, ndvi)
+
+canais <- canais |> 
+    group_by(x, y) |> 
+    drop_na() |> 
+    reframe(nbr=max(nbr, na.rm = T),
+            ndvi=max(ndvi, na.rm = T))
+
+
+data_fire
+canais
+
+# plots -------------------------------------------------------------------
+shape <- st_read('pantanal_shape/pantanal.shp')
+
+# transformar o tibble em sf
+df_sf <- st_as_sf(canais, coords = c("x", "y"), crs = 4674)  # ou crs do seu dado
+# transformar focos de fogo em sf
+df_fire_sf <- st_as_sf(data_fire, coords = c("x", "y"), crs = 4674)
+
+# plotar NDVI + pontos de fogo
+ggplot() +
+    geom_sf(data = shape, fill = NA, color = "black") +
+    geom_sf(data = df_sf, aes(color = ndvi), size = 0.4) +
+    scale_color_viridis_c(option = "D") +
+    geom_sf(data = df_fire_sf, color = "black", size = 1, shape = 3) + # X vermelho
+    theme_minimal() +
+    ggtitle("NDVI + focos de fogo")
+
+# plotar NBR + pontos de fogo
+ggplot() +
+    geom_sf(data = shape, fill = NA, color = "black") +
+    geom_sf(data = df_sf, aes(color = ndvi), size = 0.4) +
+    scale_color_viridis_c(option = "C") +
+    geom_sf(data = df_fire_sf, color = "black", size = 1, shape = 3) + # X vermelho
+    theme_minimal() +
+    ggtitle("NBR + focos de fogo")
 
 # -------------------------------------------------------------------------
 # # converter tempo para formato numérico (ex: dias desde o primeiro evento)

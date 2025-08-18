@@ -201,7 +201,7 @@ to_shape <- function(df_caminhos, shape) {
   
   file.remove(df_caminhos$file)
   
-  return(res)
+  return(NULL)
 }
 
 
