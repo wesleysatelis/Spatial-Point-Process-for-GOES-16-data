@@ -52,7 +52,6 @@ library(splines)
 modelo <- ppm(dado ~ bs(x, df=5) + bs(y, df=5))
 predict(modelo)
 
-
 # Criar um padrão de pontos aleatório em uma janela 100x100
 X <- rpoispp(lambda = 100, win = owin(c(0, 10), c(0, 10)))
 

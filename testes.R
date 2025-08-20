@@ -55,7 +55,7 @@ ggplot() +
     geom_sf(data = shape, fill = NA, color = "black") +
     geom_sf(data = df_sf, aes(color = ndvi), size = 0.4) +
     scale_color_viridis_c(option = "D") +
-    geom_sf(data = df_fire_sf, color = "black", size = 1, shape = 3) + # X vermelho
+    geom_sf(data = df_fire_sf, color = "white", size = 1, shape = 3) + # X vermelho
     theme_minimal() +
     ggtitle("NDVI + focos de fogo")
 
@@ -67,6 +67,15 @@ ggplot() +
     geom_sf(data = df_fire_sf, color = "black", size = 1, shape = 3) + # X vermelho
     theme_minimal() +
     ggtitle("NBR + focos de fogo")
+
+
+# Baddeley, verossimilhança de um processo de poisson, covariável é usada na função de intensidade
+# 4.3 pseudolikelyhood
+# como Diggle define a condicional da funcao intensidade para o caso de atração?
+# olhar kppm do spatstat, usar shape no pacote e transformar cov em imagem, lgcp?
+# mapbiomas com o uso da terra
+
+
 
 # -------------------------------------------------------------------------
 # # converter tempo para formato numérico (ex: dias desde o primeiro evento)
